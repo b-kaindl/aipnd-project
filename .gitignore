@@ -100,5 +100,8 @@ ENV/
 # mypy
 .mypy_cache/
 
+#model checkpoints
+*.pth
+
 #images
-jpg/*
+flowers/*
