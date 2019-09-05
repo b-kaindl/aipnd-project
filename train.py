@@ -17,11 +17,15 @@ device='cpu',save_dir =''):
     print('Start Training')
     running_loss = 0
     steps = 0
-    print_every = 20
-    train_size = len(dataloader)
+    print_every = 10
+    test_loss = 0
+    accuracy = 0
+    train_size = len(dataloader['train'])
+    test_size = len(dataloader['test'])
     model.train()
     for epoch in range(n_epochs):
-        for images, flowers in dataloader:
+        for images, flowers in dataloader['train']:
+            steps +=1
             images, flowers = images.to(device), flowers.to(device)
 
             optimizer.zero_grad()
@@ -31,12 +35,31 @@ device='cpu',save_dir =''):
             loss.backward()
             optimizer.step()
 
+
             running_loss += loss.item()
-            steps += 1
 
             if steps % print_every == 0:
-                    print(f"Epoch {epoch+1}/{n_epochs}.."
-                      f"Train Loss: {running_loss/steps:.3f}..")
+                test_loss = 0
+                accuracy = 0
+                with torch.no_grad():
+                    test_size = len(dataloaders["test"])
+                    for images, flowers in dataloaders['test']:
+
+                        images, flowers = images.to(device), flowers.to(device)
+                        logps = model.forward(images)
+                        batch_loss = criterion(logps, flowers)
+                        test_loss += batch_loss.item()
+
+                        ps = torch.exp(logps)
+                        top_p, top_class = ps.topk(1, dim =1)
+                        is_match = top_class == flowers.view(*top_class.shape)
+                        accuracy += torch.mean(is_match.type(torch.cuda.FloatTensor)).item()
+                print(f"Epoch {epoch+1}/{n_epochs}.."
+                  f"Train Loss: {running_loss/steps:.3f}.."
+                  f"Test Loss: {test_loss/train_size:.3f}.."
+                  f"Avg. Test accuracy: {accuracy/test_size:.3f}")
+                running_loss = 0
+                model.train()
 
 
     model.class_to_idx =cat_to_name
@@ -150,9 +173,9 @@ else:
     with open('cat_to_name.json', 'r') as f:
         cat_to_name = json.load(f)
 if args.hidden_units:
-    hidden_units =args.hidden_units #--hidden_units
+    hidden_units =args.hidden_units
 else:
-    hidden_units =512 #--hidden_units
+    hidden_units =512
 
 if args.epochs:
     n_epochs =args.epochs
@@ -247,7 +270,7 @@ optimizer = optim.Adam(model.classifier.parameters(), lr = learning_rate)
 
 model.to(device)
 
-train_model(model,optimizer,criterion,dataloaders['train'],
+train_model(model,optimizer,criterion,dataloaders,
 n_classes = n_classes, n_hidden=n_hidden, drop_p=drop_p,
 learn_rate=learning_rate,cat_to_name = cat_to_name, n_epochs=n_epochs,
 device = device ,save_dir = save_dir)
