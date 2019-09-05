@@ -13,7 +13,7 @@ import json
 #functions -migrate eventually
 def train_model(model,optimizer,criterion,dataloader,n_classes, n_hidden, drop_p,
 learn_rate,cat_to_name, n_epochs=1,
-device='cpu',save_dir =''):
+device='cpu',save_dir ='', arch = 'vgg16'):
     print('Start Training')
     running_loss = 0
     steps = 0
@@ -41,6 +41,7 @@ device='cpu',save_dir =''):
             if steps % print_every == 0:
                 test_loss = 0
                 accuracy = 0
+                model.eval()
                 with torch.no_grad():
                     test_size = len(dataloaders["test"])
                     for images, flowers in dataloaders['test']:
@@ -74,10 +75,12 @@ device='cpu',save_dir =''):
     'optim_state': optimizer.state_dict(),
     'dropout_prob': drop_p,
     'criterion' : loss,
-    'class_to_idx': model.class_to_idx
+    'class_to_idx': model.class_to_idx,
+    'arch' : arch
     }
 
 
+    #save trained model
 
     torch.save(checkpoint, save_dir + 'checkpoint.pth')
 
@@ -125,6 +128,7 @@ type = int)
 
 parser.add_argument("--mapping_file",
 help=option_dict['--mapping_file'], type =str)
+
 args = parser.parse_args()
 
 
@@ -132,7 +136,6 @@ args = parser.parse_args()
 
 
 #pretrained models allowed
-# TODO set true
 global arch_dict
 arch_dict = {
     'resnet18': models.resnet18(pretrained=False),
@@ -145,7 +148,7 @@ arch_dict = {
 
 
 
-#TODO IF
+#set Device
 device = 'cpu'
 if args.gpu:
     if torch.cuda.is_available():
@@ -159,13 +162,11 @@ else:
     torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print('Device: ' + str(device))
 
-args = parser.parse_args()
 
 data_dir = args.data_dir
 train_dir = data_dir + '/train'
 valid_dir = data_dir + '/valid'
 test_dir = data_dir + '/test'
-
 if args.mapping_file:
     with open(args.mapping_file, 'r') as f:
         cat_to_name = args.mapping_file
@@ -273,4 +274,4 @@ model.to(device)
 train_model(model,optimizer,criterion,dataloaders,
 n_classes = n_classes, n_hidden=n_hidden, drop_p=drop_p,
 learn_rate=learning_rate,cat_to_name = cat_to_name, n_epochs=n_epochs,
-device = device ,save_dir = save_dir)
+device = device ,save_dir = save_dir, arch = arch)
