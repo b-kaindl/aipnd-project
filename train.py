@@ -45,8 +45,8 @@ device='cpu',save_dir ='', arch = 'vgg16'):
                 accuracy = 0
                 model.eval()
                 with torch.no_grad():
-                    test_size = len(dataloaders["test"])
-                    for images, flowers in dataloaders['test']:
+                    test_size = len(dataloader["test"])
+                    for images, flowers in dataloader['test']:
 
                         images, flowers = images.to(device), flowers.to(device)
                         logps = model.forward(images)
@@ -83,8 +83,10 @@ device='cpu',save_dir ='', arch = 'vgg16'):
 
 
     #save trained model
-
-    torch.save(checkpoint, save_dir + 'checkpoint.pth')
+    if args.save_dir:
+        torch.save(checkpoint, save_dir + '/checkpoint.pth')
+    else:
+        torch.save(checkpoint'checkpoint.pth')
 
 
 #define user options here
